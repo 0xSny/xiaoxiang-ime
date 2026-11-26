@@ -18,12 +18,21 @@
       "tintColor": "3D7BEA",
       "category": "utilities",
       "screenshotURLs": [],
-      "version": "1.0.9",
-      "versionDate": "2026-11-26T17:59:34Z",
-      "versionDescription": "构建 #9 · 提交 99133c4: Fix ghosting while scrolling: no implicit content cross-dissolve, cache slot text",
-      "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.9/CustomIME.ipa",
-      "size": 11952301,
+      "version": "1.0.10",
+      "versionDate": "2026-11-26T18:10:42Z",
+      "versionDescription": "构建 #10 · 提交 914e555: Request 120Hz: CADisableMinimumFrameDurationOnPhone + display link frame range",
+      "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.10/CustomIME.ipa",
+      "size": 11952573,
       "versions": [
+        {
+          "version": "1.0.10",
+          "buildVersion": "10",
+          "date": "2026-11-26T18:10:42Z",
+          "localizedDescription": "构建 #10 · 提交 914e555: Request 120Hz: CADisableMinimumFrameDurationOnPhone + display link frame range",
+          "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.10/CustomIME.ipa",
+          "size": 11952573,
+          "minOSVersion": "16.0"
+        },
         {
           "version": "1.0.9",
           "buildVersion": "9",
