@@ -54,6 +54,7 @@ final class GridPanelView: UIView {
     private var theme = Theme.light
     private let scroller = KineticScroller()
     private var pool: [CATextLayer] = []
+    private var slotKey: [Int] = []
     private let tabBar = CALayer()
     private var tabLayers: [CATextLayer] = []
     private let tabIndicator = CALayer()
@@ -75,7 +76,7 @@ final class GridPanelView: UIView {
         layer.addSublayer(flash)
         layer.addSublayer(tabBar)
         layer.addSublayer(tabIndicator)
-        for t in [backLayer, hintLayer] { t.alignmentMode = .center; t.actions = ["string": NSNull(), "frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull()] }
+        for t in [backLayer, hintLayer] { t.alignmentMode = .center; t.actions = ["string": NSNull(), "contents": NSNull(), "opacity": NSNull(), "frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull()] }
         layer.addSublayer(backLayer)
         layer.addSublayer(deleteLayer)
         layer.addSublayer(hintLayer)
@@ -120,6 +121,7 @@ final class GridPanelView: UIView {
 
     private func relayout() {
         guard bounds.width > 1 else { return }
+        slotKey = [Int](repeating: -1, count: pool.count)
         backgroundColor = theme.panel
         let w = bounds.width, h = bounds.height
         tabBar.frame = CGRect(x: 0, y: h - barH, width: w, height: barH)
@@ -191,15 +193,20 @@ final class GridPanelView: UIView {
                         let t = CATextLayer()
                         t.alignmentMode = .center
                         t.contentsScale = scale
-                        t.actions = ["string": NSNull(), "frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull()]
+                        t.actions = ["string": NSNull(), "contents": NSNull(), "opacity": NSNull(), "frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull()]
                         pool.append(t)
+                        slotKey.append(-1)
                         layer.insertSublayer(t, above: flash)
                     }
                     let t = pool[slot]
                     t.contentsScale = scale
                     var label = c.items[idx]
                     if c.columns <= 2 && label.count > 14 { label = String(label.prefix(13)) + "…" }
-                    t.string = NSAttributedString(string: label, attributes: [.font: font, .foregroundColor: theme.text])
+                    let key = current &* 1_000_003 &+ idx
+                    if slotKey[slot] != key {
+                        slotKey[slot] = key
+                        t.string = NSAttributedString(string: label, attributes: [.font: font, .foregroundColor: theme.text])
+                    }
                     t.frame = CGRect(x: CGFloat(col) * cw, y: CGFloat(r) * c.cellHeight - off + (c.cellHeight - c.fontSize * 1.3) / 2, width: cw, height: c.fontSize * 1.3)
                     t.isHidden = false
                     slot += 1
@@ -285,6 +292,7 @@ final class CandidateGridView: UIView {
     private var theme = Theme.light
     private let scroller = KineticScroller()
     private var pool: [CATextLayer] = []
+    private var slotKey: [Int] = []
     private var chips: [CATextLayer] = []
     private let chipBar = CALayer()
     private let chipTitles = ["全部", "单字", "二字", "三字", "四字+"]
@@ -327,6 +335,7 @@ final class CandidateGridView: UIView {
 
     private func rebuild() {
         guard bounds.width > 1 else { return }
+        slotKey = [Int](repeating: -1, count: pool.count)
         backgroundColor = theme.panel
         filtered = all.filter { it in
             switch filter {
@@ -387,13 +396,17 @@ final class CandidateGridView: UIView {
                         let t = CATextLayer()
                         t.alignmentMode = .center
                         t.contentsScale = scale
-                        t.actions = ["string": NSNull(), "frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull()]
+                        t.actions = ["string": NSNull(), "contents": NSNull(), "opacity": NSNull(), "frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull()]
                         pool.append(t)
+                        slotKey.append(-1)
                         layer.addSublayer(t)
                     }
                     let t = pool[slot]
                     t.contentsScale = scale
-                    t.string = NSAttributedString(string: filtered[k].text, attributes: [.font: font, .foregroundColor: filtered[k].isUser ? theme.accent : theme.candidateText])
+                    if slotKey[slot] != k {
+                        slotKey[slot] = k
+                        t.string = NSAttributedString(string: filtered[k].text, attributes: [.font: font, .foregroundColor: filtered[k].isUser ? theme.accent : theme.candidateText])
+                    }
                     t.frame = CGRect(x: x, y: ry + 10, width: widths[k], height: 26)
                     t.isHidden = false
                     x += widths[k]

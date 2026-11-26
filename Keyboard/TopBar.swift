@@ -107,6 +107,7 @@ final class TopBarView: UIView {
     private var scale: CGFloat = 3
 
     private var textPool: [CATextLayer] = []
+    private var slotItem: [Int] = []          // which candidate each pooled layer currently shows
     private var sepPool: [CALayer] = []
     private var iconLayers: [CALayer] = []
     private let expandIcon = CALayer()
@@ -153,6 +154,7 @@ final class TopBarView: UIView {
             capsule.backgroundColor = t.accent.withAlphaComponent(0.14).cgColor
             capsuleText.foregroundColor = t.accent.cgColor
             refreshIcons()
+            invalidateSlots()
             updateVisible()
         }
     }
@@ -178,6 +180,7 @@ final class TopBarView: UIView {
         items = list
         scroller.stopInertia()
         xs = [0]
+        invalidateSlots()
         xs.reserveCapacity(list.count + 1)
         let font = UIFont.systemFont(ofSize: fontSize)
         for it in list {
@@ -251,7 +254,18 @@ final class TopBarView: UIView {
         return lo
     }
 
+    private func invalidateSlots() {
+        slotItem = [Int](repeating: -1, count: textPool.count)
+    }
+
+    /// Re-positions the pooled layers. Runs without implicit animations (a CATextLayer content swap would
+    /// otherwise cross-dissolve and leave a ghost image while scrolling) and only re-renders text whose
+    /// slot assignment actually changed.
     private func updateVisible() {
+        withoutAnimation { updateVisibleBody() }
+    }
+
+    private func updateVisibleBody() {
         let viewport = max(bounds.width - expandWidth, 0)
         guard composing, !items.isEmpty else {
             for l in textPool { l.isHidden = true }
@@ -268,8 +282,9 @@ final class TopBarView: UIView {
                 let t = CATextLayer()
                 t.alignmentMode = .center
                 t.contentsScale = scale
-                t.actions = ["string": NSNull(), "frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull()]
+                t.actions = ["string": NSNull(), "contents": NSNull(), "opacity": NSNull(), "frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull()]
                 textPool.append(t)
+                slotItem.append(-1)
                 layer.addSublayer(t)
                 let s = CALayer()
                 s.actions = ["frame": NSNull(), "position": NSNull(), "bounds": NSNull(), "hidden": NSNull(), "backgroundColor": NSNull()]
@@ -280,7 +295,10 @@ final class TopBarView: UIView {
             let t = textPool[slot]
             let first = (i == 0)
             let color = first ? theme.accent : (it.isUser ? theme.candidateText : theme.candidateText)
-            t.string = NSAttributedString(string: it.text, attributes: [.font: first ? UIFont.systemFont(ofSize: fontSize, weight: .medium) : font, .foregroundColor: color])
+            if slotItem[slot] != i {
+                slotItem[slot] = i
+                t.string = NSAttributedString(string: it.text, attributes: [.font: first ? UIFont.systemFont(ofSize: fontSize, weight: .medium) : font, .foregroundColor: color])
+            }
             t.frame = CGRect(x: xs[i] - off, y: (h - 24) / 2, width: xs[i + 1] - xs[i], height: 24)
             t.isHidden = false
             let s = sepPool[slot]
