@@ -68,8 +68,10 @@ jobs:
 
       - name: Generate app icon
         run: |
-          python3 -m pip install --quiet pillow
-          python3 Tools/gen_icon.py App/Assets.xcassets
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install --quiet pillow
+          python Tools/gen_icon.py App/Assets.xcassets
 
       - name: Stamp versions (identical short + build number in both Info.plists)
         run: |
