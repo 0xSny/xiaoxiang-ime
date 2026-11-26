@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegate {
 
@@ -418,7 +418,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
 
     @objc private func userMenuTapped() {
         defer { hideUserMenu() }
-        guard let item = userMenuItem, let res = result, item.index >= 0, let pick = engine?.pick(withResult: res, index: item.index) else { return }
+        guard let item = userMenuItem, let res = result, item.index >= 0, let pick = engine?.pick(with: res, index: item.index) else { return }
         engine?.deletePick(pick)
         scheduleDecode()
     }
@@ -521,7 +521,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
             textDocumentProxy.insertText(phrase)
             return
         }
-        guard let res = result, let e = engine, let pick = e.pick(withResult: res, index: item.index) else { return }
+        guard let res = result, let e = engine, let pick = e.pick(with: res, index: item.index) else { return }
         if pick.isRaw { commitRaw(); return }
         let consumed = max(1, min(pick.consumed, strokes.count))
         let used = Array(strokes.prefix(consumed))
@@ -549,7 +549,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
         let learned = picks.map { $0.pick }
         clearMarked()
         textDocumentProxy.insertText(smartPrefix(for: text) + text)
-        engine?.commitPicks(learned)
+        engine?.commit(learned)
         lastCommit = (text, CACurrentMediaTime())
         strokes.removeAll(keepingCapacity: true)
         picks.removeAll(keepingCapacity: true)
@@ -583,7 +583,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
             var item = first
             while composing && guardCount < 12 {
                 guardCount += 1
-                guard let res = result, let e = engine, let pick = e.pick(withResult: res, index: item.index) else { break }
+                guard let res = result, let e = engine, let pick = e.pick(with: res, index: item.index) else { break }
                 if pick.isRaw { commitRaw(); return }
                 let consumed = max(1, min(pick.consumed, strokes.count))
                 let used = Array(strokes.prefix(consumed))
