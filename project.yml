@@ -1,0 +1,89 @@
+name: CustomIME
+options:
+  bundleIdPrefix: com.custom
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    CODE_SIGNING_ALLOWED: "NO"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGN_IDENTITY: ""
+    DEVELOPMENT_TEAM: ""
+    ENABLE_BITCODE: "NO"
+    CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+    CLANG_CXX_LIBRARY: "libc++"
+    GCC_C_LANGUAGE_STANDARD: "gnu11"
+  configs:
+    Release:
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+      GCC_OPTIMIZATION_LEVEL: "3"
+      SWIFT_COMPILATION_MODE: "wholemodule"
+      DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+      GCC_PREPROCESSOR_DEFINITIONS: "NDEBUG=1"
+    Debug:
+      GCC_OPTIMIZATION_LEVEL: "0"
+
+targets:
+  CustomIME:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.custom.ime
+        PRODUCT_NAME: CustomIME
+        INFOPLIST_FILE: App/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: "NO"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+    dependencies:
+      - target: IMEKeyboard
+        embed: true
+        codeSign: false
+
+  IMEKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Keyboard
+        excludes:
+          - Info.plist
+      - path: Shared
+      - path: Bridge
+      - path: Core
+      - path: Resources/dict.bin
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.custom.ime.keyboard
+        PRODUCT_NAME: IMEKeyboard
+        PRODUCT_MODULE_NAME: IMEKeyboard
+        INFOPLIST_FILE: Keyboard/Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
+        SWIFT_OBJC_BRIDGING_HEADER: Bridge/IMEKeyboard-Bridging-Header.h
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/Bridge $(SRCROOT)/Core"
+        SKIP_INSTALL: "YES"
+        APPLICATION_EXTENSION_API_ONLY: "YES"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+
+schemes:
+  CustomIME:
+    build:
+      targets:
+        CustomIME: all
+        IMEKeyboard: all
+    run:
+      config: Debug
+    archive:
+      config: Release

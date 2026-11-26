@@ -1,0 +1,10 @@
+build/
+Payload/
+*.ipa
+*.xcodeproj
+rime-ice/
+Resources/dict.bin
+.DS_Store
+xcuserdata/
+DerivedData/
+__pycache__/

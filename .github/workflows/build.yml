@@ -1,0 +1,168 @@
+name: build-ipa
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: build-ipa
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      VERSION: 1.0.${{ github.run_number }}
+      BUILD: ${{ github.run_number }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          ls /Applications | grep -i xcode || true
+          sudo xcode-select -s /Applications/Xcode_15.4.app 2>/dev/null || true
+          xcodebuild -version
+
+      - name: Fetch open-source lexicon (rime-ice)
+        run: |
+          git clone --depth 1 https://github.com/iDvel/rime-ice.git rime-ice
+          ls -l rime-ice/cn_dicts
+
+      - name: Compile offline dictionary compiler
+        run: |
+          mkdir -p build Resources
+          clang++ -std=c++17 -O2 -Wall Tools/dictbuilder.cpp Core/syllables.cpp Core/dict.cpp -o build/dictbuilder
+
+      - name: Build binary mmap dictionary (clean + checksum)
+        run: |
+          D=rime-ice/cn_dicts
+          ./build/dictbuilder build Resources/dict.bin \
+            --single $D/8105.dict.yaml \
+            --words $D/base.dict.yaml --words $D/ext.dict.yaml --words $D/tencent.dict.yaml
+          ./build/dictbuilder verify Resources/dict.bin
+          SIZE=$(stat -f%z Resources/dict.bin)
+          echo "dict.bin size: $SIZE"
+          test "$SIZE" -gt 5000000
+          head -c 8 Resources/dict.bin | grep -q XXIMDCT1
+
+      - name: Engine smoke test (pinyin + xiaohe + learning)
+        run: |
+          clang++ -std=c++17 -O2 -Wall Tools/engine_test.cpp Core/syllables.cpp Core/dict.cpp Core/userdict.cpp Core/engine.cpp -o build/engine_test
+          ./build/engine_test Resources/dict.bin pinyin nihao woaini jintiantianqihenhao | tee build/smoke_pinyin.txt
+          grep -q "你好" build/smoke_pinyin.txt
+          grep -q "我爱你" build/smoke_pinyin.txt
+          grep -q "今天天气" build/smoke_pinyin.txt
+          ./build/engine_test Resources/dict.bin xiaohe nihk uuuu | tee build/smoke_xiaohe.txt
+          grep -q "你" build/smoke_xiaohe.txt
+          mkdir -p build/ud && IME_USERDIR=build/ud IME_LEARN=5 ./build/engine_test Resources/dict.bin pinyin shurufa | tee build/smoke_learn.txt
+          grep -q "rolled back" build/smoke_learn.txt
+
+      - name: Generate app icon
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 Tools/gen_icon.py App/Assets.xcassets
+
+      - name: Stamp versions (identical short + build number in both Info.plists)
+        run: |
+          for P in App/Info.plist Keyboard/Info.plist; do
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" $P
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" $P
+          done
+          sed -i '' "s/MARKETING_VERSION: \"1.0.0\"/MARKETING_VERSION: \"$VERSION\"/; s/CURRENT_PROJECT_VERSION: \"1\"/CURRENT_PROJECT_VERSION: \"$BUILD\"/" project.yml
+          grep -n "MARKETING_VERSION\|CURRENT_PROJECT_VERSION" project.yml
+
+      - name: Generate Xcode project (XcodeGen)
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build unsigned Release arm64
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project CustomIME.xcodeproj -scheme CustomIME -configuration Release \
+            -sdk iphoneos -arch arm64 -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" ONLY_ACTIVE_ARCH=NO \
+            2>&1 | tee build/xcodebuild.log | tail -n 80
+
+      - name: Assemble Payload and quality gate
+        run: |
+          APP=build/dd/Build/Products/Release-iphoneos/CustomIME.app
+          test -d "$APP"
+          APPEX="$APP/PlugIns/IMEKeyboard.appex"
+          test -d "$APPEX"
+          rm -rf Payload CustomIME.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/
+          APP=Payload/CustomIME.app
+          APPEX="$APP/PlugIns/IMEKeyboard.appex"
+          plutil -lint "$APP/Info.plist"
+          plutil -lint "$APPEX/Info.plist"
+          test -f "$APP/CustomIME"
+          test -f "$APPEX/IMEKeyboard"
+          lipo -info "$APP/CustomIME" | grep -q arm64
+          lipo -info "$APPEX/IMEKeyboard" | grep -q arm64
+          test -f "$APPEX/dict.bin"
+          head -c 8 "$APPEX/dict.bin" | grep -q XXIMDCT1
+          # signing-tool invariants
+          V1=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist")
+          V2=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APPEX/Info.plist")
+          B1=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Info.plist")
+          B2=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APPEX/Info.plist")
+          echo "app $V1 ($B1)  appex $V2 ($B2)"
+          test "$V1" = "$V2" -a "$B1" = "$B2" -a "$V1" = "$VERSION" -a "$B1" = "$BUILD"
+          ! grep -a '\$(' "$APP/Info.plist" "$APPEX/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "com.custom.ime"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPEX/Info.plist")" = "com.custom.ime.keyboard"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APPEX/Info.plist")" = "XPC!"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APPEX/Info.plist")" = "16.0"
+          /usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPrincipalClass' "$APPEX/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionAttributes:RequestsOpenAccess' "$APPEX/Info.plist"
+          test -f "$APP/Assets.car"
+          # forbidden: network code in the keyboard binary
+          ! strings "$APPEX/IMEKeyboard" | grep -E "NSURLSession|NSURLConnection|CFNetwork" || (echo "network symbols found in keyboard" && false)
+          zip -qry CustomIME.ipa Payload
+          ls -l CustomIME.ipa
+          unzip -l CustomIME.ipa | tail -n 3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CustomIME-ipa
+          path: CustomIME.ipa
+
+      - name: Publish GitHub Release
+        run: |
+          NOTES="构建 #$BUILD · 提交 ${GITHUB_SHA::7}: $(git log -1 --pretty=%s)"
+          echo "$NOTES" > build/notes.txt
+          gh release delete "v$VERSION" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "v$VERSION" CustomIME.ipa --title "小象输入法 $VERSION" --notes "$NOTES" --target "$GITHUB_SHA"
+
+      - name: Update 全能签 / AltStore source (GitHub Pages)
+        run: |
+          git fetch origin gh-pages || true
+          rm -rf pages
+          git worktree add pages gh-pages 2>/dev/null || git worktree add --orphan -b gh-pages pages
+          python3 Tools/make_appsource.py --repo "$GITHUB_REPOSITORY" --version "$VERSION" --build "$BUILD" \
+            --ipa CustomIME.ipa --notes "$(cat build/notes.txt)" --out pages/apps.json
+          cp Resources/icon.png pages/icon.png
+          cat > pages/index.html <<EOF
+          <!doctype html><meta charset="utf-8"><title>小象输入法软件源</title>
+          <h2>小象输入法软件源</h2><p>在全能签 → 软件源 中添加：<code>https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/apps.json</code></p>
+          EOF
+          touch pages/.nojekyll
+          cd pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "source: $VERSION [skip ci]" || true
+          git push origin HEAD:gh-pages
