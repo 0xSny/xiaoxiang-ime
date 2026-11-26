@@ -56,14 +56,6 @@ struct Theme {
         accentPressed: rgb(0x6A9AE6), accentText: rgb(0xFFFFFF), candidateText: rgb(0xF2F2F7), candidateSubText: rgb(0x9CA3AF),
         separator: rgb(0xFFFFFF, 0.14), bubble: rgb(0x5B5C62), bubbleText: rgb(0xF2F2F7), toolbarIcon: rgb(0xC7CBD3),
         panel: rgb(0x1E1F22))
-
-    static func resolve(appearance: Int, hostDark: Bool, systemDark: Bool) -> Theme {
-        switch appearance {
-        case 2: return (hostDark || systemDark) ? .dark : .light
-        case 1: return hostDark ? .dark : .white
-        default: return hostDark ? .dark : .light
-        }
-    }
 }
 
 /// Runs a block with implicit CALayer animations disabled.

@@ -16,8 +16,15 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
     private let haptics = HapticEngine()
     private let clicker = ClickPlayer()
     private var settings = SettingsStore.shared.current
-    private var theme = Theme.light
-    private var themeKey = ""
+    private lazy var themes = ThemeController(
+        inputs: { [unowned self] in
+            ThemeController.Inputs(appearance: self.settings.appearance,
+                                   proxyAppearance: self.textDocumentProxy.keyboardAppearance ?? .default,
+                                   traits: [self.traitCollection, self.view.window?.traitCollection,
+                                            (self.view.window?.screen ?? UIScreen.main).traitCollection].compactMap { $0 })
+        },
+        apply: { [unowned self] t in self.applyTheme(t) })
+    private var theme: Theme { themes.theme }
 
     // MARK: composing state
     private var strokes: [IMEKeyStroke] = []
@@ -70,6 +77,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
         setupEngine()
         wireTopBar()
         applySettings(initial: true)
+        themes.refresh(force: true)
         NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged), name: .imeSettingsChanged, object: nil)
     }
 
@@ -79,7 +87,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
         settings = SettingsStore.shared.current
         checkResetFlag()
         applySettings(initial: false)
-        updateTheme(force: true)
+        themes.refreshSettling(force: true)
         updateReturnKey()
         haptics.prepare()
         refreshClipboardCapsule()
@@ -87,6 +95,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        themes.refreshSettling()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
             guard let self = self, !self.warmed else { return }
             self.warmed = true
@@ -128,13 +137,13 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        updateTheme(force: false)
+        themes.refreshSettling()
     }
 
-    override func textWillChange(_ textInput: UITextInput?) { updateTheme(force: false) }
+    override func textWillChange(_ textInput: UITextInput?) { themes.refreshSettling() }
 
     override func textDidChange(_ textInput: UITextInput?) {
-        updateTheme(force: false)
+        themes.refreshSettling()
         updateReturnKey()
     }
 
@@ -208,7 +217,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
         settings = SettingsStore.shared.current
         if old.scheme != settings.scheme && composing { clearComposing() }
         applySettings(initial: false)
-        updateTheme(force: true)
+        themes.refresh(force: true)
         quickPanel?.reload()
     }
 
@@ -227,13 +236,8 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
         view.setNeedsLayout()
     }
 
-    private func updateTheme(force: Bool) {
-        let hostDark = textDocumentProxy.keyboardAppearance == .dark
-        let t = Theme.resolve(appearance: settings.appearance, hostDark: hostDark, systemDark: traitCollection.userInterfaceStyle == .dark)
-        let key = "\(t.isDark)-\(settings.appearance)"
-        if !force && key == themeKey { return }
-        themeKey = key
-        theme = t
+    /// Applies a resolved palette to every view in one animation-free transaction.
+    private func applyTheme(_ t: Theme) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         view.backgroundColor = t.background

@@ -137,10 +137,10 @@ struct ContentView: View {
                     }
                     Toggle("退格左滑清空拼音", isOn: $model.s.backspaceSwipeClear)
                     Toggle("剪贴板快捷粘贴提示", isOn: $model.s.clipboardHint)
-                    Picker("外观模式", selection: $model.s.appearance) {
+                    Picker("外观（浅色款随系统自动变深）", selection: $model.s.appearance) {
                         Text("清爽浅色").tag(0)
                         Text("纯净亮白").tag(1)
-                        Text("跟随系统深色").tag(2)
+                        Text("始终深色").tag(2)
                     }.pickerStyle(.segmented)
                     Toggle("自学习（选词晋升 / 自动造词）", isOn: $model.s.learning)
                     Text(model.statsText).font(.footnote).foregroundColor(.secondary)
