@@ -61,6 +61,8 @@ final class KineticScroller: NSObject {
         stopInertia()
         lastTick = CACurrentMediaTime()
         let l = CADisplayLink(target: self, selector: #selector(tick))
+        // ProMotion: ask for the full 120 Hz so inertial scrolling stays buttery.
+        l.preferredFrameRateRange = CAFrameRateRange(minimum: 80, maximum: 120, preferred: 120)
         l.add(to: .main, forMode: .common)
         link = l
     }
