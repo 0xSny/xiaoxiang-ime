@@ -50,7 +50,7 @@ final class ThemeController {
         kind = resolved
         if force || applied != resolved {
             applied = resolved
-            apply(palette(resolved))
+            apply(ThemeController.palette(resolved))
         }
     }
 
