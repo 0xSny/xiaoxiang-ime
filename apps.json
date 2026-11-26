@@ -18,12 +18,21 @@
       "tintColor": "3D7BEA",
       "category": "utilities",
       "screenshotURLs": [],
-      "version": "1.0.8",
-      "versionDate": "2026-11-26T17:42:29Z",
-      "versionDescription": "构建 #8 · 提交 10158b6: Fix palette static call",
-      "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.8/CustomIME.ipa",
-      "size": 11951655,
+      "version": "1.0.9",
+      "versionDate": "2026-11-26T17:59:34Z",
+      "versionDescription": "构建 #9 · 提交 99133c4: Fix ghosting while scrolling: no implicit content cross-dissolve, cache slot text",
+      "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.9/CustomIME.ipa",
+      "size": 11952301,
       "versions": [
+        {
+          "version": "1.0.9",
+          "buildVersion": "9",
+          "date": "2026-11-26T17:59:34Z",
+          "localizedDescription": "构建 #9 · 提交 99133c4: Fix ghosting while scrolling: no implicit content cross-dissolve, cache slot text",
+          "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.9/CustomIME.ipa",
+          "size": 11952301,
+          "minOSVersion": "16.0"
+        },
         {
           "version": "1.0.8",
           "buildVersion": "8",
