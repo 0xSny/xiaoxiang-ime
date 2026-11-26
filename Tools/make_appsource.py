@@ -17,7 +17,7 @@ APP_NAME = "小象输入法"
 
 def build(args):
     owner, name = args.repo.split("/")
-    pages = f"https://{owner}.github.io/{name}"
+    pages = f"https://{owner.lower()}.github.io/{name}"
     release = f"https://github.com/{args.repo}/releases/download/v{args.version}/{os.path.basename(args.ipa)}"
     size = os.path.getsize(args.ipa)
     date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
