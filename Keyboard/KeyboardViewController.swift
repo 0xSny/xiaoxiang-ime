@@ -419,7 +419,7 @@ final class KeyboardViewController: UIInputViewController, KeyboardCanvasDelegat
     @objc private func userMenuTapped() {
         defer { hideUserMenu() }
         guard let item = userMenuItem, let res = result, item.index >= 0, let pick = engine?.pick(with: res, index: item.index) else { return }
-        engine?.deletePick(pick)
+        engine?.delete(pick)
         scheduleDecode()
     }
 
