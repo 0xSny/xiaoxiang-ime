@@ -18,12 +18,21 @@
       "tintColor": "3D7BEA",
       "category": "utilities",
       "screenshotURLs": [],
-      "version": "1.0.6",
-      "versionDate": "2026-11-26T17:25:36Z",
-      "versionDescription": "构建 #6 · 提交 c8231fb: AppSource: lowercase pages host",
-      "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.6/CustomIME.ipa",
-      "size": 11945675,
+      "version": "1.0.8",
+      "versionDate": "2026-11-26T17:42:29Z",
+      "versionDescription": "构建 #8 · 提交 10158b6: Fix palette static call",
+      "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.8/CustomIME.ipa",
+      "size": 11951655,
       "versions": [
+        {
+          "version": "1.0.8",
+          "buildVersion": "8",
+          "date": "2026-11-26T17:42:29Z",
+          "localizedDescription": "构建 #8 · 提交 10158b6: Fix palette static call",
+          "downloadURL": "https://github.com/0xSny/xiaoxiang-ime/releases/download/v1.0.8/CustomIME.ipa",
+          "size": 11951655,
+          "minOSVersion": "16.0"
+        },
         {
           "version": "1.0.6",
           "buildVersion": "6",
